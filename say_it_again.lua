@@ -10,18 +10,12 @@
 
 Features:
  -- Phrases navigation (go to previous, next subtitle) - keys [y], [u]
- -- Word translation and export to Anki (together with context and transcription) - key [i]
  -- "Again": go to previous phrase, show subtitle and pause video - key [backspace]
 
 How To Install And Use:
  1. Copy say_it_again.lua (this file) to %ProgramFiles%\VideoLAN\VLC\lua\extensions\ (or /usr/share/vlc/lua/extensions/ for Linux users)
- 2. Download a dictionary in Stardict format (eg google "lingvo x3 stardict torrent"; keep in mind that it is kind of illegal, though)
- 3. Extract dictionaries: there should be three files (.ifo, .idx and .dict (not .dz)) in one directory
- 4. Download WordNet databases [http://wordnetcode.princeton.edu/wn3.1.dict.tar.gz] and extract them somewhere
- 5. Edit say_it_again.lua: specify *dict_dir*, *wordnet_dir* and *words_file_path*
- 6. Restart VLC, go to "View" and select "Say It Again" extension there
- 7. ????
- 8. PROFIT!
+ 2. Restart VLC, go to "View" and select "Say It Again" extension there
+ 3. PROFIT!
 
 License -- MIT:
  Copyright (c) 2013 Vasily Goldobin
@@ -36,7 +30,6 @@ License -- MIT:
 
 Thanks
  to lubozle (Subtitler, Previous frame) and hector (Dico) and others, whose extensions helped to create this one;
- to Princeton University for their WordNet;
 
 Abbreviations used in code:
  def     definition of a word (= translation)
@@ -90,63 +83,6 @@ local g_subtitles = {
     subtitles = {} -- contains all the subtitles
 }
 
-local g_dict = {
-    loaded = false,
-    name = nil,
-    idx_table = {},
-    dict_file = nil,
-    format = nil
-}
-
-local g_dict_fmt = {
-    {pattern = "Lingvo", tr = "<tr>(.-)</tr>", def = "<dtrn>(.-)</dtrn>", not_def = nil},
-    {pattern = "Universal", tr = "<tr>(.-)</tr>", def = "<dtrn>(.-)</dtrn>", not_def = nil},
-    {pattern = "OxfordAmericanDictionary", tr = "<tr>(.-)</tr>", def = "<dtrn>(.-)</dtrn>", not_def = {"<ex>"}},
-    {pattern = "Merriam%-Webster", tr = "<co>\\(.-)\\</co>", def = "<dtrn> <b>:</b> (.-)</dtrn>", not_def = nil},
-    {pattern = "Macmillan", tr = "<c c=\"teal\">%[(.-)%]</c>", def = "<blockquote>(.-)</blockquote>", not_def = {"<ex>", "c=\"darkslategray\""}},
-    {pattern = "Longman", tr = " /(.-)/ ", def = "<blockquote>(.-)</blockquote>", not_def = {"<ex>", "Word Family:", "Origin: ", "c=\"crimson\"", "c=\"chocolate\"", "c=\"darkgoldenrod\"", "c=\"gray\""}},
-    {pattern = "Babylon", tr = nil, def = "[>;,]%s(.-)%f[^%a%s]", not_def = nil}, -- uses the undocumented frontier pattern %f to work even at the end of the string
-    {pattern = ".*", tr = nil, def = "(.-)\n", not_def = nil}, -- for unknown dictionaries
-}
-
-local g_wordnet = {
-    loaded = false,
-    poss = {},
-
-    rules = {
-        noun = {
-            {"s", ""},
-            {"'s", ""},
-            {"'", ""},
-            {"ses", "s"},
-            {"xes", "x"},
-            {"zes" , "z"},
-            {"ches" , "ch"},
-            {"shes" , "sh"},
-            {"men" , "man"},
-            {"ies" , "y"}
-        },
-        verb = {
-            {"s", ""},
-            {"ies", "y"},
-            {"es", "e"},
-            {"es", ""},
-            {"ed", "e"},
-            {"ed", ""},
-            {"ing", "e"},
-            {"ing", ""}
-        },
-        adj = {
-            {"er", ""},
-            {"er", "e"},
-            {"est", ""},
-            {"est", "e"}
-        },
-        adv = {}
-    }
-}
-
-
 --[[  Functions required by VLC  ]]--
 
 function descriptor()
@@ -174,7 +110,6 @@ function activate()
     if vlc.object.input() then
         local loaded, msg = g_subtitles:load(get_subtitles_path())
         if not loaded then
-            log(msg)
             return
         end
         g_osd_channel = vlc.osd.channel_register()
@@ -329,20 +264,7 @@ function g_subtitles:move(time)
     
     self:_fill_currents(time)
 
-    --g_subtitles:log(time)
-
     return true, self:get_current(), self.end_time and self.end_time-time or 0
-end
-
-function g_subtitles:log(cur_time)
-        log("________________________________________________")
-        log("prev\tbegin\tcurr\tend\tnext")
-        log(tostring(self.prev_time or "----").."\t"..tostring(self.begin_time or "----").."\t"..
-                tostring(cur_time or "----").."\t"..tostring(self.end_time or "----")..
-                "\t"..tostring(self.next_time or "----"))
-        log("nesting: " .. #self.currents)
-        log("titre:" .. (g_subtitles:get_current() or "nil"))
-        log("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 end
 
 -- private
@@ -435,12 +357,6 @@ function input_events_handler(var, old, new, data)
 end
 
 function key_pressed_handler(var, old, new, data)
-    log(new)
-    log(new)
-    log(new)
-    log(new)
-    log(new)
-    --log("var: "..tostring(var).."; old: "..tostring(old).."; new: "..tostring(new).."; data: "..tostring(data))
     if new == sia_settings.key_prev_subt then
         goto_prev_subtitle()
     elseif new == sia_settings.key_next_subt then
@@ -570,7 +486,6 @@ function get_subtitles_path()
     if not item then return "" end
 
     local path_to_video = uri_to_path(vlc.strings.decode_uri(item:uri()), is_unix_platform())
-    log(path_to_video)
 
     return path_to_video:gsub("[^.]*$", "") .. "srt"
 end
